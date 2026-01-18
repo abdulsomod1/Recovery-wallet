@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Crypto Wallet</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>My Crypto Wallet</h1>
+            <div class="header-icons">
+                <span class="icon">🔔</span>
+                <span class="icon">☰</span>
+            </div>
+        </header>
+
+        <div class="balance-card">
+            <div class="balance-info">
+                <h2>Total Balance</h2>
+                <p class="balance-amount">$12,345.67</p>
+                <p class="change">+2.34% (24H)</p>
+            </div>
+            <div class="balance-chart">
+                <canvas id="balanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="time-filters">
+            <button class="filter active">1H</button>
+            <button class="filter">24H</button>
+            <button class="filter">1W</button>
+            <button class="filter">1M</button>
+            <button class="filter">1Y</button>
+        </div>
+
+        <button class="deposit-btn">Deposit</button>
+
+        <div id="cryptoList"></div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span>Portfolio</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">📤</span>
+                <span>Send</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">📥</span>
+                <span>Receive</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span>Settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
