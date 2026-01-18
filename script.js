@@ -1,11 +1,12 @@
 // Balance chart
 const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+let balanceHistory = [12345.67]; // Start with current balance
 const balanceChart = new Chart(balanceCtx, {
     type: 'line',
     data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        labels: Array.from({length: 20}, (_, i) => i.toString()),
         datasets: [{
-            data: [10000, 10500, 10200, 10800, 11500, 12346],
+            data: balanceHistory,
             borderColor: '#00d4ff',
             backgroundColor: 'rgba(0, 212, 255, 0.1)',
             borderWidth: 2,
@@ -37,6 +38,42 @@ const balanceChart = new Chart(balanceCtx, {
         }
     }
 });
+
+// Balance fluctuation variables
+let currentBalance = 12345.67;
+let initialBalance = 12345.67;
+let last24HBalance = 12345.67;
+
+// Function to update balance with random fluctuation
+function updateBalance() {
+    // Random change between -2% and +2%
+    const changePercent = (Math.random() - 0.5) * 4; // -2 to +2
+    const changeAmount = currentBalance * (changePercent / 100);
+    currentBalance += changeAmount;
+
+    // Keep balance positive
+    if (currentBalance < 0) currentBalance = 0;
+
+    // Add to history, keep last 20 points
+    balanceHistory.push(currentBalance);
+    if (balanceHistory.length > 20) {
+        balanceHistory.shift();
+    }
+
+    // Update chart
+    balanceChart.data.datasets[0].data = balanceHistory;
+    balanceChart.update();
+
+    // Update displayed balance
+    const balanceAmountEl = document.querySelector('.balance-amount');
+    balanceAmountEl.textContent = `$${currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+    // Calculate 24H change (simplified - in real app would track over 24 hours)
+    const change24H = ((currentBalance - last24HBalance) / last24HBalance) * 100;
+    const changeEl = document.querySelector('.change');
+    changeEl.textContent = `${change24H >= 0 ? '+' : ''}${change24H.toFixed(2)}% (24H)`;
+    changeEl.style.color = change24H >= 0 ? '#4CAF50' : '#f44336';
+}
 
 // Time filter functionality
 const filters = document.querySelectorAll('.filter');
@@ -184,143 +221,5 @@ async function fetchCoinGeckoData(retryCount = 0) {
 fetchCoinGeckoData();
 setInterval(fetchCoinGeckoData, 60000); // Update every 60 seconds to avoid rate limits
 
-// Chat functionality
-let currentChatCoin = null;
-let chatHistory = {}; // Store chat history per coin
-
-// Initialize chat functionality
-function initChat() {
-    const chatModal = document.getElementById('chatModal');
-    const closeChat = document.getElementById('closeChat');
-    const sendMessage = document.getElementById('sendMessage');
-    const chatInput = document.getElementById('chatInput');
-
-    // Close chat modal
-    closeChat.addEventListener('click', () => {
-        chatModal.classList.remove('show');
-        currentChatCoin = null;
-    });
-
-    // Click outside to close
-    chatModal.addEventListener('click', (e) => {
-        if (e.target === chatModal) {
-            chatModal.classList.remove('show');
-            currentChatCoin = null;
-        }
-    });
-
-    // Send message
-    sendMessage.addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendChatMessage();
-        }
-    });
-
-    // Add click listeners to crypto items
-    document.addEventListener('click', (e) => {
-        const cryptoItem = e.target.closest('.crypto-item');
-        if (cryptoItem) {
-            const coinSymbol = cryptoItem.dataset.symbol;
-            const coinName = cryptoItem.querySelector('h3').textContent;
-            openChat(coinSymbol, coinName);
-        }
-    });
-}
-
-function openChat(coinSymbol, coinName) {
-    currentChatCoin = coinSymbol;
-    document.getElementById('chatCoinName').textContent = `${coinName} Chat`;
-    document.getElementById('chatModal').classList.add('show');
-    document.getElementById('chatInput').focus();
-
-    // Load chat history
-    loadChatHistory(coinSymbol);
-
-    // Simulate initial bot message if no history
-    if (!chatHistory[coinSymbol] || chatHistory[coinSymbol].length === 0) {
-        setTimeout(() => {
-            addMessage('bot', `Welcome to ${coinName} chat! How can I help you today?`, coinSymbol);
-        }, 500);
-    }
-}
-
-function sendChatMessage() {
-    const chatInput = document.getElementById('chatInput');
-    const message = chatInput.value.trim();
-
-    if (message && currentChatCoin) {
-        addMessage('user', message, currentChatCoin);
-        chatInput.value = '';
-
-        // Simulate bot response
-        setTimeout(() => {
-            const responses = [
-                "That's an interesting point about this cryptocurrency!",
-                "I see you're following the market closely.",
-                "Would you like to know more about trading strategies?",
-                "The crypto market can be volatile, stay informed!",
-                "Thanks for your message. Any specific questions about this coin?"
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            addMessage('bot', randomResponse, currentChatCoin);
-        }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-    }
-}
-
-function addMessage(type, content, coinSymbol) {
-    if (!chatHistory[coinSymbol]) {
-        chatHistory[coinSymbol] = [];
-    }
-
-    const message = {
-        type: type,
-        content: content,
-        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-    };
-
-    chatHistory[coinSymbol].push(message);
-    saveChatHistory();
-
-    renderMessages(coinSymbol);
-}
-
-function renderMessages(coinSymbol) {
-    const chatMessages = document.getElementById('chatMessages');
-    chatMessages.innerHTML = '';
-
-    if (!chatHistory[coinSymbol]) return;
-
-    chatHistory[coinSymbol].forEach((msg, index) => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${msg.type === 'user' ? 'sent' : 'received'}`;
-
-        // Add timestamp for first message or when time changes significantly
-        if (index === 0 || (index > 0 && chatHistory[coinSymbol][index-1].timestamp !== msg.timestamp)) {
-            const timestampDiv = document.createElement('div');
-            timestampDiv.className = 'message timestamp';
-            timestampDiv.textContent = msg.timestamp;
-            chatMessages.appendChild(timestampDiv);
-        }
-
-        messageDiv.textContent = msg.content;
-        chatMessages.appendChild(messageDiv);
-    });
-
-    // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function loadChatHistory() {
-    const saved = localStorage.getItem('cryptoChatHistory');
-    if (saved) {
-        chatHistory = JSON.parse(saved);
-    }
-}
-
-function saveChatHistory() {
-    localStorage.setItem('cryptoChatHistory', JSON.stringify(chatHistory));
-}
-
-// Initialize chat when DOM is loaded
-document.addEventListener('DOMContentLoaded', initChat);
+// Start balance fluctuation
+setInterval(updateBalance, 7000); // Update every 7 seconds
