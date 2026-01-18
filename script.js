@@ -43,6 +43,15 @@ const balanceChart = new Chart(balanceCtx, {
 let currentBalance = 12345.67;
 let initialBalance = 12345.67;
 let last24HBalance = 12345.67;
+let currentTimeFrame = '24H'; // Default time frame
+let updateIntervals = {
+    '1H': 2000,   // Update every 2 seconds for 1H
+    '24H': 7000,  // Update every 7 seconds for 24H
+    '1W': 15000,  // Update every 15 seconds for 1W
+    '1M': 30000,  // Update every 30 seconds for 1M
+    '1Y': 60000   // Update every 60 seconds for 1Y
+};
+let balanceUpdateInterval;
 
 // Function to update balance with random fluctuation
 function updateBalance() {
@@ -54,9 +63,12 @@ function updateBalance() {
     // Keep balance positive
     if (currentBalance < 0) currentBalance = 0;
 
-    // Add to history, keep last 20 points
+    // Get max history length based on current time frame
+    const maxHistoryLength = currentTimeFrame === '1H' ? 60 : currentTimeFrame === '24H' ? 24 : currentTimeFrame === '1W' ? 7 : currentTimeFrame === '1M' ? 30 : 12;
+
+    // Add to history, keep last points based on time frame
     balanceHistory.push(currentBalance);
-    if (balanceHistory.length > 20) {
+    if (balanceHistory.length > maxHistoryLength) {
         balanceHistory.shift();
     }
 
@@ -81,8 +93,28 @@ filters.forEach(filter => {
     filter.addEventListener('click', () => {
         filters.forEach(f => f.classList.remove('active'));
         filter.classList.add('active');
-        // Here you could update charts based on selected time frame
-        // For demo, just change active state
+
+        // Update time frame and balance update interval
+        const selectedTimeFrame = filter.textContent;
+        currentTimeFrame = selectedTimeFrame;
+
+        // Clear existing interval
+        if (balanceUpdateInterval) {
+            clearInterval(balanceUpdateInterval);
+        }
+
+        // Reset balance history for new time frame
+        balanceHistory = [currentBalance];
+
+        // Set new update interval
+        balanceUpdateInterval = setInterval(updateBalance, updateIntervals[selectedTimeFrame]);
+
+        // Update chart labels based on time frame
+        const labelCount = selectedTimeFrame === '1H' ? 60 : selectedTimeFrame === '24H' ? 24 : selectedTimeFrame === '1W' ? 7 : selectedTimeFrame === '1M' ? 30 : 12;
+        balanceChart.data.labels = Array.from({length: labelCount}, (_, i) => i.toString());
+        balanceChart.update();
+
+        console.log(`Switched to ${selectedTimeFrame} time frame`);
     });
 });
 
@@ -100,10 +132,11 @@ navItems.forEach(item => {
 // Live data fetching from CoinGecko
 async function fetchCoinGeckoData(retryCount = 0) {
     console.log('Fetching CoinGecko data...');
-    const ids = 'bitcoin,ethereum,binancecoin,cardano,solana,polkadot,chainlink,litecoin,bitcoin-cash,stellar,avalanche-2,chain-2,cosmos,algorand,vechain,tron,theta-token,filecoin,aave,maker,compound-governance-token,uniswap,sushi,pancakeswap-token,1inch,curve-dao-token,yearn-finance,synthetix-network-token,balancer,ren,loopring,kyber-network,bancor,0x,basic-attention-token,civic,golem,storj,maidsafecoin,iostoken,wax,zilliqa,icon,ontology,harmony,near,flow,internet-computer,hedera-hashgraph,elrond-erd-2,theta-fuel,ocean-protocol,skale,celer-network,ankr,fetch-ai,band-protocol';
+    // Reduced to top 15 coins for faster loading
+    const ids = 'bitcoin,ethereum,binancecoin,solana,cardano,polkadot,chainlink,avalanche-2,matic-network,near,algorand,cosmos,flow,internet-computer,hedera-hashgraph';
 
     try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=100&page=1&sparkline=true`);
+        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=15&page=1&sparkline=true`);
         console.log('Response status:', response.status);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -221,5 +254,5 @@ async function fetchCoinGeckoData(retryCount = 0) {
 fetchCoinGeckoData();
 setInterval(fetchCoinGeckoData, 60000); // Update every 60 seconds to avoid rate limits
 
-// Start balance fluctuation
-setInterval(updateBalance, 7000); // Update every 7 seconds
+// Start balance fluctuation with default 24H interval
+balanceUpdateInterval = setInterval(updateBalance, updateIntervals['24H']);
