@@ -1,4 +1,4 @@
-// Balance chart
+ // Balance chart
 const balanceCtx = document.getElementById('balanceChart').getContext('2d');
 let balanceHistory = [12345.67]; // Start with current balance
 const balanceChart = new Chart(balanceCtx, {
@@ -43,6 +43,7 @@ const balanceChart = new Chart(balanceCtx, {
 let currentBalance = 12345.67;
 let initialBalance = 12345.67;
 let last24HBalance = 12345.67;
+let currentTimeFrame = '1H'; // Default time frame
 let currentTimeFrame = '24H'; // Default time frame
 let updateIntervals = {
     '1H': 2000,   // Update every 2 seconds for 1H
@@ -321,5 +322,24 @@ async function fetchCoinGeckoData(retryCount = 0) {
 fetchCoinGeckoData();
 setInterval(fetchCoinGeckoData, 60000); // Update every 60 seconds to avoid rate limits
 
-// Start balance fluctuation with default 24H interval
-balanceUpdateInterval = setInterval(updateBalance, updateIntervals['24H']);
+// Start balance fluctuation with default 1H interval
+balanceUpdateInterval = setInterval(updateBalance, updateIntervals['1H']);
+
+// Deposit button functionality
+document.querySelector('.deposit-btn').addEventListener('click', () => {
+    const address = generateRandomAddress();
+    alert(`Deposit to this wallet address: ${address}`);
+});
+
+// Crypto item click functionality
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.crypto-item')) {
+        const address = generateRandomAddress();
+        alert(`Send to this wallet address: ${address}`);
+    }
+});
+
+// Function to generate a random wallet address
+function generateRandomAddress() {
+    return '0x' + Math.random().toString(16).substr(2, 40);
+}
