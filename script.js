@@ -56,8 +56,8 @@ let balanceUpdateInterval;
 // Function to update balance with random fluctuation
 function updateBalance() {
     // Random change between -2% and +2%
-    const changePercent = (Math.random() - 0.5) * 4; // -2 to +2
-    const changeAmount = currentBalance * (changePercent / 100);
+    const randomChangePercent = (Math.random() - 0.5) * 4; // -2 to +2
+    const changeAmount = currentBalance * (randomChangePercent / 100);
     currentBalance += changeAmount;
 
     // Keep balance positive
@@ -80,11 +80,11 @@ function updateBalance() {
     const balanceAmountEl = document.querySelector('.balance-amount');
     balanceAmountEl.textContent = `$${currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-    // Calculate 24H change (simplified - in real app would track over 24 hours)
-    const change24H = ((currentBalance - last24HBalance) / last24HBalance) * 100;
+    // Calculate change based on current time frame (simplified - in real app would track properly)
+    const displayChangePercent = ((currentBalance - last24HBalance) / last24HBalance) * 100;
     const changeEl = document.querySelector('.change');
-    changeEl.textContent = `${change24H >= 0 ? '+' : ''}${change24H.toFixed(2)}% (24H)`;
-    changeEl.style.color = change24H >= 0 ? '#4CAF50' : '#f44336';
+    changeEl.textContent = `${displayChangePercent >= 0 ? '+' : ''}${displayChangePercent.toFixed(2)}% (${currentTimeFrame})`;
+    changeEl.style.color = displayChangePercent >= 0 ? '#4CAF50' : '#f44336';
 }
 
 // Time filter functionality
@@ -129,20 +129,82 @@ navItems.forEach(item => {
     });
 });
 
-// Live data fetching from CoinGecko
-async function fetchCoinGeckoData(retryCount = 0) {
-    console.log('Fetching CoinGecko data...');
-    // Reduced to top 15 coins for faster loading
-    const ids = 'bitcoin,ethereum,binancecoin,solana,cardano,polkadot,chainlink,avalanche-2,matic-network,near,algorand,cosmos,flow,internet-computer,hedera-hashgraph';
-
-    try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=15&page=1&sparkline=true`);
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+// Mock data for faster loading (no API calls) - reduced to 6 coins
+function getMockCryptoData() {
+    console.log('Loading mock crypto data...');
+    const mockData = [
+        {
+            id: 'bitcoin',
+            symbol: 'btc',
+            name: 'Bitcoin',
+            current_price: 45000,
+            price_change_percentage_24h: 2.5,
+            total_volume: 25000000000,
+            market_cap: 850000000000,
+            sparkline_in_7d: { price: [44000, 44500, 44200, 44800, 45100, 44900, 45000] }
+        },
+        {
+            id: 'ethereum',
+            symbol: 'eth',
+            name: 'Ethereum',
+            current_price: 2800,
+            price_change_percentage_24h: -1.2,
+            total_volume: 15000000000,
+            market_cap: 330000000000,
+            sparkline_in_7d: { price: [2850, 2820, 2800, 2780, 2810, 2790, 2800] }
+        },
+        {
+            id: 'binancecoin',
+            symbol: 'bnb',
+            name: 'Binance Coin',
+            current_price: 320,
+            price_change_percentage_24h: 1.8,
+            total_volume: 1200000000,
+            market_cap: 48000000000,
+            sparkline_in_7d: { price: [315, 318, 316, 322, 319, 321, 320] }
+        },
+        {
+            id: 'solana',
+            symbol: 'sol',
+            name: 'Solana',
+            current_price: 95,
+            price_change_percentage_24h: 3.2,
+            total_volume: 2500000000,
+            market_cap: 38000000000,
+            sparkline_in_7d: { price: [92, 94, 91, 96, 93, 97, 95] }
+        },
+        {
+            id: 'cardano',
+            symbol: 'ada',
+            name: 'Cardano',
+            current_price: 0.45,
+            price_change_percentage_24h: -0.8,
+            total_volume: 800000000,
+            market_cap: 15000000000,
+            sparkline_in_7d: { price: [0.46, 0.45, 0.44, 0.46, 0.45, 0.44, 0.45] }
+        },
+        {
+            id: 'polkadot',
+            symbol: 'dot',
+            name: 'Polkadot',
+            current_price: 8.50,
+            price_change_percentage_24h: 1.5,
+            total_volume: 500000000,
+            market_cap: 8500000000,
+            sparkline_in_7d: { price: [8.40, 8.45, 8.30, 8.60, 8.45, 8.55, 8.50] }
         }
-        const data = await response.json();
-        console.log('Data received:', data.length, 'coins');
+    ];
+
+    console.log('Mock data loaded:', mockData.length, 'coins');
+    return Promise.resolve(mockData);
+}
+
+// Live data fetching from CoinGecko (now using mock data for speed)
+async function fetchCoinGeckoData(retryCount = 0) {
+    console.log('Fetching crypto data...');
+    try {
+        // Use mock data instead of API for faster loading
+        const data = await getMockCryptoData();
 
         const cryptoList = document.getElementById('cryptoList');
         cryptoList.innerHTML = '';
@@ -201,6 +263,11 @@ async function fetchCoinGeckoData(retryCount = 0) {
                             y: {
                                 display: false
                             }
+                        },
+                        elements: {
+                            point: {
+                                radius: 0
+                            }
                         }
                     }
                 });
@@ -242,7 +309,7 @@ async function fetchCoinGeckoData(retryCount = 0) {
         });
         console.log('Update complete');
     } catch (error) {
-        console.error('Error fetching data from CoinGecko:', error);
+        console.error('Error loading mock data:', error);
         if (retryCount < 3) {
             console.log(`Retrying in 5 seconds... (${retryCount + 1}/3)`);
             setTimeout(() => fetchCoinGeckoData(retryCount + 1), 5000);
